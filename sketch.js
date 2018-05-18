@@ -5,16 +5,24 @@ const screenHeight = 600;
 let picker;
 let colour;
 
-let currentTool = "rectangle";
+let currentTool;
 const dots = new Set();
 const rectangles = new Set();
 
 let rectangleStarted = false;
 let [rectX, rectY] = [0, 0];
 
+let shapeMoving = false;
+let [moveX, moveY] = [0, 0];
+
+function changeTool(toolName) {
+	currentTool = toolName;
+	document.getElementById("selectedTool").innerHTML = toolName;
+}
+
 function randColour() {
 	// generate a random colour
-	const colour = `#${Math.random().toString(16).slice(2, 8)}`;
+	const colour = `#${random().toString(16).slice(2, 8)}`;
 
 	// update the colour picker
 	document.getElementById("colourPicker").value = colour;
@@ -29,13 +37,17 @@ function mousePressed() {
 		&& 0 <= mouseY && mouseY <= screenHeight) {
 		if(currentTool === "dot") {
 			dots.add(new Dot(mouseX, mouseY, colour));
-
 			colour = randColour();
 		}
 
 		if(currentTool === "rectangle") {
 			rectangleStarted = true;
 			[rectX, rectY] = [mouseX, mouseY];
+		}
+
+		if(currentTool === "hand") {
+			shapeMoving = true;
+			[moveX, moveY] = [mouseX, mouseY];
 		}
 	}
 }
@@ -57,27 +69,60 @@ function mouseReleased() {
 		colour = randColour();
 	}
 
+	// check for hand tool, move the rectangles
+	if(0 <= mouseX && mouseX <= screenWidth 
+		&& 0 <= mouseY && mouseY <= screenHeight 
+		&& currentTool === "hand" && shapeMoving) {
+		for(const rectangle of rectangles) {
+			if(rectangle.highlighted) {
+				// actually move it
+				rectangle.move(mouseX - moveX, mouseY - moveY);
+			}
+		}
+
+		for(const dot of dots) {
+			if(dot.highlighted) {
+				// move the dot
+				dot.move(mouseX - moveX, mouseY - moveY);
+			}
+		}
+	}
+
+	shapeMoving = false;
 	rectangleStarted = false;
 }
 
 function mouseMoved() {
-	let hoveringRectangle = false;
+	let hoveringAtLeastOneThing = false;
 
 	if(currentTool === "hand") {
+		for(const dot of dots) {
+			const {x, y} = dot;
+			const [dx, dy] = [mouseX - x, mouseY - y];
+
+			if(Math.sqrt(dx ** 2 + dy ** 2) <= 20) {
+				dot.highlight();
+				hoveringAtLeastOneThing = true;
+			} else {
+				dot.unhighlight();
+			}
+
+		}
+
 		for(const rectangle of rectangles) {
 			const {x, y, width, height} = rectangle;
 
 			if(x <= mouseX && mouseX <= x + width 
 				&& y <= mouseY && mouseY <= y + height) {
-				rectangle.highlighted = true;
-				hoveringRectangle = true;
+				rectangle.highlight();
+				hoveringAtLeastOneThing = true;
 			} else {
-				rectangle.highlighted = false;
+				rectangle.unhighlight();
 			}
 		}
 	}
 
-	cursor(hoveringRectangle ? MOVE : CROSS);
+	cursor(hoveringAtLeastOneThing ? MOVE : CROSS);
 }
 
 
@@ -87,42 +132,42 @@ function setup() {
 	createCanvas(screenWidth, screenHeight);
 
 	colour = randColour();
+	changeTool("rectangle");
 
-	// get the colour picker ready
-	document.getElementById("colourPicker")
-	.addEventListener("change", event => {
-		const selectedColour = event.target.value;
-		colour = selectedColour;
-	});
-
-	document.getElementById("dotTool").addEventListener("click", event => {
-		currentTool = "dot";
-	});
-
-	document.getElementById("rectTool").addEventListener("click", event => {
-		currentTool = "rectangle";
-	});
-
-	document.getElementById("handTool").addEventListener("click", event => {
-		currentTool = "hand";
-	});
-
-	document.getElementById("clearTool").addEventListener("click", event => {
-		dots.clear();
-		rectangles.clear();
-	});
+	// get all the event listeners ready
+	for(const tool of toolBox) {
+		document.getElementById(tool.id)
+		.addEventListener(tool.eventType, tool.eventFunction);
+	}
 }
 
 // this function runs every frame
 function draw() {
+	// clear the background
 	background("white");
 
-	for(const rectangle of rectangles) {
-		rectangle.render();
+	let [offsetX, offsetY] = [0, 0];
+
+	if(shapeMoving) {
+		[offsetX, offsetY] = [mouseX - moveX, mouseY - moveY];
 	}
 
+	// draw all the rectangles
+	for(const rectangle of rectangles) {
+		if(rectangle.highlighted) {
+			rectangle.render(offsetX, offsetY);
+		} else {
+			rectangle.render();
+		}
+	}
+
+	// draw all the dots
 	for(const dot of dots) {
-		dot.render();
+		if(dot.highlighted) {
+			dot.render(offsetX, offsetY);
+		} else {
+			dot.render();
+		}
 	}
 
 	// show the temporary rectangle on screen
@@ -133,7 +178,7 @@ function draw() {
 		const tempY = min(rectY, mouseY);
 
 		push();
-		stroke(160, 160, 160);
+		stroke(160);
 		strokeWeight(1);
 		noFill();
 		rect(tempX, tempY, rectWidth, rectHeight);
