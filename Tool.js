@@ -19,5 +19,6 @@ const toolBox = [
 	new Tool("clearTool", "click", () => {
 		dots.clear();
 		rectangles.clear();
+		displayShapeInfo();
 	})
 ];

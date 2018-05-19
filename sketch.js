@@ -5,6 +5,7 @@ const screenHeight = 600;
 let picker;
 let colour;
 
+let shapeInfo;
 let currentTool;
 const dots = new Set();
 const rectangles = new Set();
@@ -30,6 +31,23 @@ function randColour() {
 	return colour;
 }
 
+function displayShapeInfo() {
+	const shapeInfoItems = [];
+
+	for(const rectangle of rectangles) {
+		const rectInfo = `rectangle: x: ${rectangle.startX}, y: ${rectangle.startY}, width: ${rectangle.width}, height: ${rectangle.height}, dx: ${rectangle.x - rectangle.startX}, dy: ${rectangle.y - rectangle.startY}`;
+		shapeInfoItems.push(rectInfo);
+	}
+
+	for(const dot of dots) {
+		const dotInfo = `dot: x: ${dot.startX}, y: ${dot.startY}, dx: ${dot.x - dot.startX}, dy: ${dot.y - dot.startY}`;
+		shapeInfoItems.push(dotInfo);
+	}
+
+	shapeInfo.innerHTML = shapeInfoItems.join("<br />");
+}
+
+
 
 // add a new shape
 function mousePressed() {
@@ -38,6 +56,7 @@ function mousePressed() {
 		if(currentTool === "dot") {
 			dots.add(new Dot(mouseX, mouseY, colour));
 			colour = randColour();
+			displayShapeInfo();
 		}
 
 		if(currentTool === "rectangle") {
@@ -67,6 +86,7 @@ function mouseReleased() {
 
 		// change the colour to something else random
 		colour = randColour();
+		displayShapeInfo();
 	}
 
 	// check for hand tool, move the rectangles
@@ -86,6 +106,7 @@ function mouseReleased() {
 				dot.move(mouseX - moveX, mouseY - moveY);
 			}
 		}
+		displayShapeInfo();
 	}
 
 	shapeMoving = false;
@@ -130,6 +151,10 @@ function mouseMoved() {
 function setup() {
 	// make the canvas
 	createCanvas(screenWidth, screenHeight);
+
+	shapeInfo = document.createElement("div");
+	shapeInfo.setAttribute("id", "shapeInfo");
+	document.body.appendChild(shapeInfo);
 
 	colour = randColour();
 	changeTool("rectangle");

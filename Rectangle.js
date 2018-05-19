@@ -27,8 +27,17 @@ class Rectangle {
 	}
 
 	render(offsetX = 0, offsetY = 0) {
+		const [x1, y1, x2, y2] = [this.startX, this.startY, 
+								  this.x + offsetX, this.y + offsetY];
+		const parts = 20;
+		const [xDiff, yDiff] = [x2 - x1, y2 - y1];
+		const startColour = color(160);
+		const endColour = color(this.colour);
+
+
+
 		push();
-		stroke(160);
+		stroke(startColour);
 		strokeWeight(5);
 		noFill();
 		rect(this.startX, this.startY, this.width, this.height);
@@ -40,18 +49,18 @@ class Rectangle {
 		stroke(this.colour);
 		strokeWeight(5);
 		
-		// upper left corner
-		line(this.startX, this.startY, this.x + offsetX, this.y + offsetY);
-
-		// upper right corner
-		line(this.startX + this.width, this.startY, this.x + offsetX + this.width, this.y + offsetY);
-
-		// lower left corner
-		line(this.startX, this.startY + this.height, this.x + offsetX, this.y + offsetY + this.height);
-
-		// lower right corner
-		line(this.startX + this.width, this.startY + this.height, this.x + offsetX + this.width, this.y + offsetY + this.height);
-
+		for(let i = 0; i < parts; i++) {
+			stroke(lerpColor(startColour, endColour , (i) / parts));
+			
+			for(const [dx, dy] of [[0, 0], [0, 1], [1, 0], [1, 1]]) {
+				const startX = x1 + dx * this.width + (i / parts) * xDiff;
+				const endX = x1 + dx * this.width + ((i + 1) / parts) * xDiff;
+				const startY = y1 + dy * this.height + (i / parts) * yDiff;
+				const endY = y1 + dy * this.height + ((i + 1) / parts) * yDiff;
+				line(startX, startY, endX, endY);
+			}
+		}
+		
 		pop();
 
 
